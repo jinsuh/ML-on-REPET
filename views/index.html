@@ -4,7 +4,7 @@
 <head>
 	<title>Chordal Analysis</title>
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
-	<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+	<link rel="stylesheet" href="/public/css/styles.css">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 <body>
@@ -23,17 +23,16 @@
 					<li class="active"><a href="#">Overview <span class="sr-only">(current)</span></a></li>
 					<li><a href="dataset">Data Set</a></li>
 					<li><a href="#methodology">Methodology</a></li>
-					<li><a href="#performance">Performance Analysis</a></li>
-					<li><a href="#results">Results</a></li>
-					<li><a href="#conclusion">Conclusion</a></li>
 				</ul>
 			</div>
 		</div>
 	</nav>
-	<div class="page-header">
+	<div class="center">
 		<h1> Automating Parameter Selection for REPET </h1>
 		<h4> <a href="http://cs.northwestern.edu/~pardo/courses/eecs352">Northwestern University EECS 352</a></h4>
 		<h4>Instructor Bryan Pardo</h4>
+		<h5>Gregory Chan and Suhong Jin</h5>
+		<a href="mailto:gregorychan2016@u.northwestern.edu">gregorychan2016@u.northwestern.edu</a>
 	</div>
 	<div class='container'>
 		<article id="paper">
@@ -42,9 +41,14 @@
 				<p>
 					We want to make a web application that uses machine learning to easily predict parameters for REPET original with soft masking to source separate audio files. Users will upload audio files, and our application will present the user with two versions of the source separation, one with our predicted parameters and one with the default parameters. 
 				</p>
+
 				<p>
-					REPET is an amazing source separation but has some tedious parts to it. For example, it was troublesome to analyze the beat spectrum and mess around with the thresholding value to adequately separate source sounds. Because we were taught REPET in class and read the paper, we were more familiar with the algorithm and able to determine good values. However, other people are not as familiar with REPET. Our project would make REPET more user-friendly and accessible to encourage users with various skills in music technology to use REPET.
+					REPET is an amazing source separation but has some tedious parts to it. For example, it was troublesome to analyze the beat spectrum and mess around with the thresholding value to adequately separate source sounds. Below in Figure 1 is a step by step representation of the REPET algorithm. Because we were taught REPET in class and read the paper, we were more familiar with the algorithm and able to determine good values. However, other people are not as familiar with REPET. Our project would make REPET more user-friendly and accessible to encourage users with various skills in music technology to use REPET.
 				</p>
+
+				<img src="/public/images/repet.jpg"></img>
+				<h5>Figure 1: REPET source separation steps</h5>
+				<p>Rafii and B. Pardo. Repeating Pattern Extraction Technique (REPET): A Simple Method for Music/Void Separation. Transactions on Audio, Speech, and Language Processing, 21(1): 71-84, 2013</p>
 			</section>
 			<section id ="dataset">
 				<h2>Data Set </h2>
@@ -60,6 +64,7 @@
 				<p>
 					Our web application will accept a .wav file as input. The file will upload to our server, and our application will run REPET twice. We will run REPET using a set of default parameters on the file and run REPET using parameters most similar to the nearest neighbor in our data set.
 				</p>
+
 				<p>
 					There are three stages to our system. First, we need to gather a set of foreground and background audio files and construct our data set. Next, we need to train our machine learning classifier. Finally, we want to query our system with audio files, using the classifier we made in the previous stage, to compute the best set of REPET parameters for an audio file.
 				</p>
@@ -75,18 +80,7 @@
 				<p>
 					Finally, our classifier will accept a query sound file. We will compute characteristics about the file and use weighted euclidian distance or cosine similarity to find the nearest neighbor. Will will then present both users with the foreground and background produced by the REPET parameters of the nearest neighbor and the default REPET values.
 				</p>
-
-			</section>
-			<section id="performance">
-				<h2> Performance Analysis</h2>
-			</section>
-			<section id ="results">
-				<h2>Results</h2>
-				Coming soon...
-			</section>
-			<section id ="conclusion">
-				<h2>Conclusion</h2>
-				Coming soon...
+				
 			</section>
 			<article>
 			</div>
