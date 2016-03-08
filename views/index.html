@@ -21,7 +21,7 @@
 			<div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
 				<ul class="nav navbar-nav">
 					<li class="active"><a href="#">Overview <span class="sr-only">(current)</span></a></li>
-					<li><a href="#dataset">Data Set</a></li>
+					<li><a href="dataset">Data Set</a></li>
 					<li><a href="#methodology">Methodology</a></li>
 					<li><a href="#performance">Performance Analysis</a></li>
 					<li><a href="#results">Results</a></li>
@@ -42,13 +42,39 @@
 				<p>
 					We want to make a web application that uses machine learning to easily predict parameters for REPET original with soft masking to source separate audio files. Users will upload audio files, and our application will present the user with two versions of the source separation, one with our predicted parameters and one with the default parameters. 
 				</p>
+				<p>
+					REPET is an amazing source separation but has some tedious parts to it. For example, it was troublesome to analyze the beat spectrum and mess around with the thresholding value to adequately separate source sounds. Because we were taught REPET in class and read the paper, we were more familiar with the algorithm and able to determine good values. However, other people are not as familiar with REPET. Our project would make REPET more user-friendly and accessible to encourage users with various skills in music technology to use REPET.
+				</p>
 			</section>
 			<section id ="dataset">
 				<h2>Data Set </h2>
-				We are in the process of gathering LooperMan and FreeSound sound files to build our training dataset. All files will be converted to 16 bit, mono, 44.1kHz to make sure our construction from the foreground and background is consistent.
+				<p>
+					We are in the process of gathering LooperMan and FreeSound sound files to build our training dataset. All files will be converted to 16 bit, mono, 44.1kHz to make sure our construction from the foreground and background is consistent.
+				</p>
+				<p>
+					We plan on getting 25 foreground and 25 background sound files. Mixing and matching these files will give us a dataset of 625 total files to test.The sound files are encoded in .wav format for consistency.
+				</p>
 			</section>
 			<section id='methodology'>
 				<h2>Methodology</h2>
+				<p>
+					Our web application will accept a .wav file as input. The file will upload to our server, and our application will run REPET twice. We will run REPET using a set of default parameters on the file and run REPET using parameters most similar to the nearest neighbor in our data set.
+				</p>
+				<p>
+					There are three stages to our system. First, we need to gather a set of foreground and background audio files and construct our data set. Next, we need to train our machine learning classifier. Finally, we want to query our system with audio files, using the classifier we made in the previous stage, to compute the best set of REPET parameters for an audio file.
+				</p>
+
+				<p>
+					First, we will download a large number audio files. We will download two types of files, repeating background files and nonrepeating foreground files.We will construct our data set by randomly combining one file from the list of background files and one from the list of foreground files.
+				</p>
+
+				<p>
+					Next, we will run REPET with a few different periods, thresholds, and window sizes and compare the output foreground and background audio files to the original foreground and background files using the signal to distortion ratio. For each file, we will choose the top parameter configuration that yields the highest signal to distortion ratio. For each file, we will also compute characteristics of the audio derived from the beat spectrum like number of peaks, max peaks, bpm, etc. We will then aggregate these results into a database which we can use for querying.
+				</p>
+
+				<p>
+					Finally, our classifier will accept a query sound file. We will compute characteristics about the file and use weighted euclidian distance or cosine similarity to find the nearest neighbor. Will will then present both users with the foreground and background produced by the REPET parameters of the nearest neighbor and the default REPET values.
+				</p>
 
 			</section>
 			<section id="performance">
