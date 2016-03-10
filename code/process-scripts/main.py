@@ -1,4 +1,5 @@
 import librosa, numpy as np, scipy as sp, os, nussl, mir_eval, sqlite3, matplotlib.pyplot as plt
+from scipy import signal
 
 def wavwrite(filepath, data, sr, norm=True, dtype='int16',):
     '''
@@ -134,7 +135,7 @@ def insert_row(table, values):
 def insert_nearest_neighbors(values):
     conn = sqlite3.connect('repet.db')
     cursor = conn.cursor()
-    cursor.execute('insert into nearest_neighbor (window_size, window_type, period, standard_deviation, bpm, fg_file, bg_file, period_min, period_max, suggested_period) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', values)
+    cursor.execute('insert into nearest_neighbor (window_size, window_type, period, standard_deviation, bpm, num_peaks, fg_file, bg_file, period_min, period_max, suggested_period) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', values)
     conn.commit()
     conn.close()
 
@@ -238,12 +239,13 @@ def all_nearest_neighbor(fg_input_directory, fg_file_name_base, bg_input_directo
                     period_max = suggested_period
 
                     sd = beat_spectrum_std(bs)
+                    n_peaks = beat_spectrum_num_peaks(bs)
                     tempo, beats = librosa.beat.beat_track(mix)
 
                     periods = [suggested_period / 8, suggested_period / 7, suggested_period / 6, suggested_period / 5, suggested_period / 4, suggested_period / 3, suggested_period / 2, suggested_period]
                     for period in periods:
                         
-                        values = (window_size, window_type, period, sd, tempo, fg_file_name, bg_file_name, period_min, period_max, suggested_period)
+                        values = (window_size, window_type, period, sd, tempo, n_peaks, fg_file_name, bg_file_name, period_min, period_max, suggested_period)
 
                         print values
                         insert_nearest_neighbors(values)
@@ -261,7 +263,18 @@ def beat_spectrum_std(beat_spectrum):
 
     return np.std(quantized)
 
+def beat_spectrum_num_peaks(beat_spectrum):
+    peaks = signal.find_peaks_cwt(beat_spectrum, np.arange(1, 20))
+    return len(peaks)
+
+def create_nn_table():
+    conn = sqlite3.connect('repet.db')
+    cursor = conn.cursor()
+    cursor.execute('''CREATE TABLE nearest_neighbor
+        (window_size, window_type, period, standard_deviation, bpm, num_peaks, fg_file, bg_file, period_min, period_max, suggested_period)''')
+
 
 if __name__ == '__main__':
-    all_repet_params('../fg/processed/', 'fg-', '../bg/processed/', 'bg-', '',  44100)
-    # all_nearest_neighbor('../fg/processed/', 'fg-', '../bg/processed/', 'bg-', '',  44100)
+    # all_repet_params('../fg/processed/', 'fg-', '../bg/processed/', 'bg-', '',  44100)
+    # create_nn_table()
+    all_nearest_neighbor('../fg/processed/', 'fg-', '../bg/processed/', 'bg-', '',  44100)
