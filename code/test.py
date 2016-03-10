@@ -9,7 +9,7 @@ def main():
 
     # make a directory to store output if needed
     if not os.path.exists('./Output/'):
-        os.mkdir('./Output')
+        os.makedirs('./Output')
 
     # Set up window parameters
     win = nussl.WindowAttributes(signal.sample_rate)
