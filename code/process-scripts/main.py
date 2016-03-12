@@ -73,9 +73,9 @@ def pre_process_files():
     '''
 
     '''
-    for i in range(0, 5):
+    for i in range(5, 15):
         length = 30
-        save_foreground('../fg/fg-%02d.wav' % i, '../fg/processed/fg-%02d.wav' % i, length, 44100)
+        #save_foreground('../fg/fg-%02d.wav' % i, '../fg/processed/fg-%02d.wav' % i, length, 44100)
         save_background('../bg/bg-%02d.wav' % i, '../bg/processed/bg-%02d.wav' % i, length, 44100)
 
 def run_repet(X, window_size=None, window_type=None, period=None):
@@ -262,6 +262,8 @@ def beat_spectrum_std(beat_spectrum):
     return np.std(quantized)
 
 
-if __name__ == '__main__':
-    all_repet_params('../fg/processed/', 'fg-', '../bg/processed/', 'bg-', '',  44100)
+# if __name__ == '__main__':
+    # all_repet_params('../fg/processed/', 'fg-', '../bg/processed/', 'bg-', '',  44100)
     # all_nearest_neighbor('../fg/processed/', 'fg-', '../bg/processed/', 'bg-', '',  44100)
+    # pre_process_files()
+    
