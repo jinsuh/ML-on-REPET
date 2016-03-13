@@ -43,7 +43,7 @@ def save_foreground(input_path, output_path, length, sample_rate):
     print 'writing fg...' 
     wavwrite(output_path, fg, sample_rate)
 
-def save_background(input_path, output_path, length, sample_rate):
+def save_background(input_path, output_path, sample_rate, length=0, number_of_repeating_segments=0):
     '''
     Stitch together wave files to a specified length
 
@@ -59,29 +59,44 @@ def save_background(input_path, output_path, length, sample_rate):
     print 'loading bg file...'
     bg, sample_rate = librosa.load(input_path, sr=sample_rate)
     print 'stitching bg file...'
-    bg_length = bg.shape[0] / sample_rate
-    number_of_segments = int(np.ceil(length / bg_length))
+    if length > 0:
+        bg_length = bg.shape[0] / sample_rate
+        number_of_segments = int(np.ceil(length / bg_length))
+    elif number_of_repeating_segments > 0:
+        number_of_segments = number_of_repeating_segments
+    else:
+        print 'a length or number of repeating segments must be specified'
+        return
+    
     result = bg
     for i in range(0, number_of_segments):
         result = np.concatenate((bg, result))
-    print bg.shape[0] / sample_rate
-    print result.shape[0] / sample_rate
+
     print 'writing bg...' 
     wavwrite(output_path, result, sample_rate)
 
-def pre_process_files():
+def pre_process_background(start, end):
     '''
+    Process background files
 
+    Parameters
+    ----------
+    start : int
+        start index for numbered sound files
+    end : int
+        one more than the end index for numbered sound files
     '''
-    for i in range(5, 15):
+    for i in range(start, end):
         length = 30
-        #save_foreground('../fg/fg-%02d.wav' % i, '../fg/processed/fg-%02d.wav' % i, length, 44100)
-        save_background('../bg/bg-%02d.wav' % i, '../bg/processed/bg-%02d.wav' % i, length, 44100)
+        number_of_repeating_segments = 10
+        save_background('../bg/bg-%02d.wav' % i, '../bg/beat-spectrum-processed/bg-%02d.wav' % i, 44100, number_of_repeating_segments=10)
 
 def run_repet(X, window_size=None, window_type=None, period=None):
     ''' 
     runs REPET on a signal with given parameters
 
+    Parameters
+    ----------
     X : 1D numpy array
         the time series of a signal
     window_size : int
@@ -142,6 +157,8 @@ def all_repet_params(fg_input_directory, fg_file_name_base, bg_input_directory, 
     '''
     Creates all combinations of foreground and background files and runs a large series of REPET parameters on them
 
+    Parameters
+    ----------
     fg_input_directory : str
         input directory 
     fg_file_name_base : str
