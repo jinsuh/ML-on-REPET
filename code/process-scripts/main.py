@@ -99,7 +99,7 @@ def run_repet(X, window_size=None, window_type=None, period=None):
         win.window_type = window_type
 
     if period != None:
-        repet = nussl.Repet(signal, repet_type=nussl.RepetType.DEFAULT, window_attributes=win, period=period, min_period=period-1, max_period=period)
+        repet = nussl.Repet(signal, repet_type=nussl.RepetType.DEFAULT, window_attributes=win, period=period, min_period=period, max_period=period)
     else:
         repet = nussl.Repet(signal, repet_type=nussl.RepetType.DEFAULT, window_attributes=win)
 
@@ -157,9 +157,7 @@ def all_repet_params(fg_input_directory, fg_file_name_base, bg_input_directory, 
     '''
     window_sizes = [256, 512, 1024, 2048, 4096, 8192, 16384]
     window_types = [nussl.WindowType.HAMMING, nussl.WindowType.RECTANGULAR, nussl.WindowType.HANN, nussl.WindowType.BLACKMAN]
-    # window_sizes = [2048]
-    # window_types = [nussl.WindowType.BLACKMAN]
-    # period = [i for i in range(0, 1000)]
+    
     for i in range(0, 5):
         for j in range(1, 5):
             fg_file_name = fg_file_name_base + ('%02d.wav' % i)
