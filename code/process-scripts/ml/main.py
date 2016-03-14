@@ -1,4 +1,4 @@
-import librosa, numpy as np, scipy as sp, os, nussl, mir_eval, sqlite3, matplotlib.pyplot as plt
+import librosa, numpy as np, scipy as sp, os, nussl, mir_eval, sqlite3, matplotlib.pyplot as plt, sys
 
 def wavwrite(filepath, data, sr, norm=True, dtype='int16',):
     '''
@@ -91,6 +91,13 @@ def pre_process_background(start, end):
         number_of_repeating_segments = 10
         save_background('../bg/bg-%02d.wav' % i, '../bg/beat-spectrum-processed/bg-%02d.wav' % i, 44100, number_of_repeating_segments=10)
 
+def pre_process_background(input_path, output_path, number_of_repeating_segments):
+    files = os.listdir(input_path)
+
+    for f in files:
+        if os.path.isfile(os.path.join(input_path, f)):
+            save_background(os.path.join(input_path, f), os.path.join(output_path, f), 44100, number_of_repeating_segments)
+
 def run_repet(X, window_size=None, window_type=None, period=None):
     ''' 
     runs REPET on a signal with given parameters
@@ -106,24 +113,35 @@ def run_repet(X, window_size=None, window_type=None, period=None):
     '''
     signal = nussl.AudioSignal(audio_data_array=X)
 
-    win = nussl.WindowAttributes(signal.sample_rate)
-    
-    if window_size != None:
-        win.window_length = window_size
-    if window_type != None:
-        win.window_type = window_type
+    signal.window_length = window_size
+    signal.window_type = window_type
 
-    if period != None:
-        repet = nussl.Repet(signal, repet_type=nussl.RepetType.DEFAULT, window_attributes=win, period=period, min_period=period, max_period=period)
-    else:
-        repet = nussl.Repet(signal, repet_type=nussl.RepetType.DEFAULT, window_attributes=win)
+    params = nussl.StftParams(signal.sample_rate, window_length=window_size, window_type=window_type)
+    repet = nussl.Repet(signal, repet_type=nussl.RepetType.DEFAULT, stft_params=params)
+    beat_spectrum = repet.get_beat_spectrum()
+
+    period_simple = nussl.Repet.find_repeating_period_simple(beat_spectrum, repet.min_period, repet.max_period)
+    period_complex = float(nussl.Repet.find_repeating_period_complex(beat_spectrum))
+
+    repet = nussl.Repet(signal, repet_type=nussl.RepetType.DEFAULT, min_period=1, period=period_simple, max_period=len(beat_spectrum))
+    repet.update_periods()
+
+    print period_simple
+    print repet.period
 
     repet.run()
+    bg_simple, fg_simple = repet.make_audio_signals()
 
-    # Get foreground and backgroun audio signals
-    bg, fg = repet.make_audio_signals()
+    repet = nussl.Repet(signal, repet_type=nussl.RepetType.DEFAULT, min_period=1, period=period_complex, max_period=len(beat_spectrum))
+    repet.update_periods()
 
-    return bg, fg
+    print period_complex
+    print repet.period
+
+    repet.run()
+    bg_complex, fg_complex = repet.make_audio_signals()
+
+    return bg_simple, fg_simple, bg_complex, fg_complex
 
 def compute_beat_spectrum_and_suggested_period(X, window_size=None, window_type=None):
     signal = nussl.AudioSignal(audio_data_array=X)
@@ -190,28 +208,23 @@ def all_repet_params(fg_input_directory, fg_file_name_base, bg_input_directory, 
 
             # if not os.path.exists(new_directory):
             #     os.makedirs(new_directory)
-
-            rbg, rfg = run_repet(mix)
-            default_fg_result = mir_eval.separation.bss_eval_sources(fg, rfg.audio_data)
-            default_bg_result = mir_eval.separation.bss_eval_sources(bg, rbg.audio_data)
             
             for window_size in window_sizes:
                 for window_type in window_types:
+                    bg_simple, fg_simple, bg_complex, fg_complex = run_repet(mix, window_size=window_size, window_type=window_type)
 
-                    bs, suggested_period = compute_beat_spectrum_and_suggested_period(mix, window_size=window_size, window_type=window_type)
-                    period_min = suggested_period / 8
-                    period_max = suggested_period
+                    fg_simple_result = mir_eval.separation.bss_eval_sources(fg, fg_simple.audio_data)
+                    bg_simple_result = mir_eval.separation.bss_eval_sources(bg, bg_simple.audio_data)
 
-                    periods = [suggested_period / 8, suggested_period / 7, suggested_period / 6, suggested_period / 5, suggested_period / 4, suggested_period / 3, suggested_period / 2, suggested_period]
-                    for period in periods:
-                        rbg, rfg = run_repet(mix, window_size=window_size, window_type=window_type, period=period)
+                    fg_complex_result = mir_eval.separation.bss_eval_sources(fg, fg_complex.audio_data)
+                    bg_complex_result = mir_eval.separation.bss_eval_sources(bg, bg_complex.audio_data)
 
-                        fg_result = mir_eval.separation.bss_eval_sources(fg, rfg.audio_data)
-                        bg_result = mir_eval.separation.bss_eval_sources(bg, rbg.audio_data)
-                        values = (window_size, window_type, period, bg_result[0][0], fg_result[0][0], fg_file_name, bg_file_name, period_min, period_max, suggested_period, default_fg_result[0][0], default_bg_result[0][0])
+                    print 'window_size: ', window_size, 'window_type: ', window_type, 'simple_bg_sdr: ', bg_simple_result[0][0], 'simple_fg_sdr: ', fg_simple_result[0][0], 'complex_bg_sdr: ', bg_complex_result[0][0], 'complex_fg_sdr: ', fg_complex_result[0][0]
 
-                        print values
-                        insert_row('repet', values)
+                        # values = (window_size, window_type, period, bg_result[0][0], fg_result[0][0], fg_file_name, bg_file_name, period_min, period_max, suggested_period, default_fg_result[0][0], default_bg_result[0][0])
+
+                        # print values
+                        # insert_row('repet', values)
 
 def all_nearest_neighbor(fg_input_directory, fg_file_name_base, bg_input_directory, bg_file_name_base, output_directory, sample_rate):
     '''

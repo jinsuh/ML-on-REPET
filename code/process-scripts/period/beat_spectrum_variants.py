@@ -1,4 +1,4 @@
-import nussl, os, sys
+import nussl, os, sys, matplotlib.pyplot as plt, numpy as np
 
 def main():
 	path = sys.argv[1]
@@ -6,6 +6,8 @@ def main():
 
 	for f in files:
 		if os.path.isfile(os.path.join(path, f)):
+			print os.path.join(path, f)
+
 			audio = nussl.AudioSignal(os.path.join(path, f))
 			repet = nussl.Repet(audio)
 
