@@ -118,6 +118,14 @@ def generate_repeating_files_and_compare(input_path, output_path, length):
                     create_looped_file(seed, length, full_file_name, output_path)
                     compare_simple_complex_actual(seed, actual_period_samples)
 
+                for j in range(2, 11):  
+                    seed = nussl.AudioSignal(audio_data_array=original_seed.audio_data[0][len(original_seed.audio_data[0]) - len(original_seed.audio_data[0])/j:])
+                    full_file_name = '%s%02d.wav' % (file_name[0], j + i)
+
+                    actual_period_samples = len(seed.audio_data[0])
+                    create_looped_file(seed, length, full_file_name, output_path)
+                    compare_simple_complex_actual(seed, actual_period_samples)
+
 def create_looped_file(audio_signal, max_file_length, file_name, output_path):
     max_samples = int(max_file_length * audio_signal.sample_rate)
 
