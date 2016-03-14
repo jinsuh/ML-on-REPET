@@ -8,4 +8,4 @@ if __name__ == '__main__':
 	input_path = sys.argv[1]
 	output_path = sys.argv[2]
 	length = int(sys.argv[3])
-	library.generate_repeating_files(input_path, output_path, length)
+	library.generate_repeating_files_and_compare(input_path, output_path, length)

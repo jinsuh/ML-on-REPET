@@ -91,7 +91,7 @@ def pre_process_background(start, end):
         number_of_repeating_segments = 10
         save_background('../bg/bg-%02d.wav' % i, '../bg/beat-spectrum-processed/bg-%02d.wav' % i, 44100, number_of_repeating_segments=10)
 
-def generate_repeating_files(input_path, output_path, length):
+def generate_repeating_files_and_compare(input_path, output_path, length):
     '''
 
     '''
@@ -113,7 +113,10 @@ def generate_repeating_files(input_path, output_path, length):
                 for i in range(1, 11):  
                     seed = nussl.AudioSignal(audio_data_array=original_seed.audio_data[0][:len(original_seed.audio_data[0])/i])
                     full_file_name = '%s%02d.wav' % (file_name[0], i)
+
+                    actual_period_samples = len(seed.audio_data[0])
                     create_looped_file(seed, length, full_file_name, output_path)
+                    compare_simple_complex_actual(seed, actual_period_samples)
 
 def create_looped_file(audio_signal, max_file_length, file_name, output_path):
     max_samples = int(max_file_length * audio_signal.sample_rate)
@@ -125,4 +128,21 @@ def create_looped_file(audio_signal, max_file_length, file_name, output_path):
 
     new_path = os.path.join(output_path, os.path.splitext(file_name)[0] + '_repeating' + os.path.splitext(file_name)[1])
     audio_signal.write_audio_to_file(new_path, sample_rate=44100, verbose=True)
+
+def compare_simple_complex_actual(audio_signal, period_actual):
+    repet = nussl.Repet(audio_signal)
+
+    beat_spectrum = repet.get_beat_spectrum()
+
+    repet.update_periods()
+    period_simple = repet.find_repeating_period_simple(beat_spectrum, repet.min_period, repet.max_period)
+    period_complex = float(repet.find_repeating_period_complex(beat_spectrum))
+
+    # repeating_period based on the stft so is a multiple of hop, so have to convert it
+    period_simple_seconds = repet.stft_params.hop_length * period_simple / audio_signal.sample_rate
+    period_complex_seconds = repet.stft_params.hop_length * period_complex / audio_signal.sample_rate
+
+    print 'actual = ', period_actual, 'samples', float(period_actual) / audio_signal.sample_rate, 'seconds'
+    print 'simple = ', period_simple,'hops,', period_simple * repet.stft_params.hop_length, 'samples',  period_simple_seconds, 'seconds'
+    print 'complex = ', period_complex,'hops,', period_complex * repet.stft_params.hop_length, 'samples', period_complex_seconds, 'seconds'
 
