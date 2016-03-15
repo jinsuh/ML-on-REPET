@@ -93,7 +93,16 @@ def pre_process_background(start, end):
 
 def generate_repeating_files_and_compare(input_path, output_path, length):
     '''
+    Generate repeating files and compare the simple method and complex method for period computation
 
+    Parameters
+    ----------
+    input_path : str
+        directory of source files
+    output_path : str
+        directory of the output repeating files
+    length : float
+        total time in seconds for repeating pattern
     '''
     files = os.listdir(input_path)
 
@@ -113,18 +122,21 @@ def generate_repeating_files_and_compare(input_path, output_path, length):
                 for i in range(1, 11):  
                     seed = nussl.AudioSignal(audio_data_array=original_seed.audio_data[0][:len(original_seed.audio_data[0])/i])
                     full_file_name = '%s%02d.wav' % (file_name[0], i)
+                    compare_and_create_files(seed, full_file_name, length, output_path)
 
-                    actual_period_samples = len(seed.audio_data[0])
-                    create_looped_file(seed, length, full_file_name, output_path)
-                    compare_simple_complex_actual(seed, actual_period_samples)
 
                 for j in range(2, 11):  
                     seed = nussl.AudioSignal(audio_data_array=original_seed.audio_data[0][len(original_seed.audio_data[0]) - len(original_seed.audio_data[0])/j:])
-                    full_file_name = '%s%02d.wav' % (file_name[0], j + i)
+                    full_file_name = '%s%02d.wav' % (file_name[0], j + i - 1)
+                    compare_and_create_files(seed, full_file_name, length, output_path)
+                    
 
-                    actual_period_samples = len(seed.audio_data[0])
-                    create_looped_file(seed, length, full_file_name, output_path)
-                    compare_simple_complex_actual(seed, actual_period_samples)
+def compare_and_create_files(seed, file_name, length, output_path):
+    period_actual = len(seed.audio_data[0])
+    seed = create_looped_file(seed, length, file_name, output_path)
+    period_simple, period_complex = compare_simple_complex_actual(seed)
+
+    insert_result(period_actual, period_simple, period_complex, seed.sample_rate)
 
 def create_looped_file(audio_signal, max_file_length, file_name, output_path):
     max_samples = int(max_file_length * audio_signal.sample_rate)
@@ -136,8 +148,9 @@ def create_looped_file(audio_signal, max_file_length, file_name, output_path):
 
     new_path = os.path.join(output_path, os.path.splitext(file_name)[0] + '_repeating' + os.path.splitext(file_name)[1])
     audio_signal.write_audio_to_file(new_path, sample_rate=44100, verbose=True)
+    return audio_signal
 
-def compare_simple_complex_actual(audio_signal, period_actual):
+def compare_simple_complex_actual(audio_signal):
     repet = nussl.Repet(audio_signal)
 
     beat_spectrum = repet.get_beat_spectrum()
@@ -150,7 +163,15 @@ def compare_simple_complex_actual(audio_signal, period_actual):
     period_simple_seconds = repet.stft_params.hop_length * period_simple / audio_signal.sample_rate
     period_complex_seconds = repet.stft_params.hop_length * period_complex / audio_signal.sample_rate
 
-    print 'actual = ', period_actual, 'samples', float(period_actual) / audio_signal.sample_rate, 'seconds'
-    print 'simple = ', period_simple,'hops,', period_simple * repet.stft_params.hop_length, 'samples',  period_simple_seconds, 'seconds'
-    print 'complex = ', period_complex,'hops,', period_complex * repet.stft_params.hop_length, 'samples', period_complex_seconds, 'seconds'
+    return repet.stft_params.hop_length * period_simple, repet.stft_params.hop_length * period_complex
 
+    # print 'actual = ', period_actual, 'samples', float(period_actual) / audio_signal.sample_rate, 'seconds'
+    # print 'simple = ', period_simple,'hops,', period_simple * repet.stft_params.hop_length, 'samples',  period_simple_seconds, 'seconds'
+    # print 'complex = ', period_complex,'hops,', period_complex * repet.stft_params.hop_length, 'samples', period_complex_seconds, 'seconds'
+
+def insert_result(period_actual, period_simple, period_complex, sample_rate):
+    conn = sqlite3.connect('results.db')
+    cursor = conn.cursor()
+    cursor.execute('insert into results (actual_period, simple_period, complex_period, sample_rate) values (?, ?, ?, ?)', (period_actual, period_simple, period_complex, sample_rate))
+    conn.commit()
+    conn.close()
