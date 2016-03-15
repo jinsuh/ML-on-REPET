@@ -23,12 +23,15 @@
 					<li class="active"><a href="#">Overview <span class="sr-only">(current)</span></a></li>
 					<li><a href="#dataset">Data Set</a></li>
 					<li><a href="#methodology">Methodology</a></li>
+					<li><a href="#results">Results</a></li>
+					<li><a href="#conclusion">Conclusion</a></li>
+					<li><a href="/public/files/final-paper.pdf">Paper</a></li>
 				</ul>
 			</div>
 		</div>
 	</nav>
 	<div class="center">
-		<h1> Automating Parameter Selection for REPET </h1>
+		<h1>Comparing Algorithms to Find the Period from the Beat Spectrum</h1>
 		<h4> <a href="http://cs.northwestern.edu/~pardo/courses/eecs352">Northwestern University EECS 352</a></h4>
 		<h4>Instructor Bryan Pardo</h4>
 		<h5>Gregory Chan and Suhong Jin</h5>
@@ -39,52 +42,95 @@
 			<section id ="overview">
 				<h2>Overview</h2>
 				<p>
-					We want to make a web application that uses machine learning to easily predict parameters for REPET original with soft masking to source separate audio files. Users will upload audio files, and our application will present the user with two versions of the source separation, one with our predicted parameters and one with the default parameters. 
+					Rhythm is largely omnipresent in music produce by humans dating back for centuries, and its relationship to accent, metre, time, and tempo are useful measures for machine analysis. Thus, rhythm analysis is the basis for many music processing algorithms. The beat spectrum is one method for computing periodic self-similarity within an audio file as a function of time lag  [1], which can be useful for estimating tempo and has applications in source separation [2]. REpeating Pattern Extraction Technique (REPET) is a source separation algorithm to separate a sound mixture that relies on the underlying assumption the signal is periodic. While there are many variants of the REPET  algorithm, REPET original leverages beat spectrum as a method for deriving a repeating period. There are a number of variables that influence the accuracy of the repeating segment, but ensuring the repeating period is most representative of a repeating segment is crucial for the algorithm to separate foreground and background audio.
 				</p>
-
 				<p>
-					REPET is an amazing source separation but has some tedious parts to it. For example, it was troublesome to analyze the beat spectrum and mess around with the thresholding value to adequately separate source sounds. Below in Figure 1 is a step by step representation of the REPET algorithm. Because we were taught REPET in class and read the paper, we were more familiar with the algorithm and able to determine good values. However, other people are not as familiar with REPET. Our project would make REPET more user-friendly and accessible to encourage users with various skills in music technology to use REPET.
-				</p>
-
-				<img src="/public/images/repet.jpg"></img>
-				<h5>Figure 1: REPET source separation steps</h5>
-				<p>Rafii and B. Pardo. Repeating Pattern Extraction Technique (REPET): A Simple Method for Music/Void Separation. Transactions on Audio, Speech, and Language Processing, 21(1): 71-84, 2013</p>
+					We hope by improving the accuracy of computing the repeating period from a beat spectrum may improve the results of original REPET. However, for the purposes of this experiment we limited the scope to analyze and compare two methods. We compared two methods for finding the repeating period from a beat spectrum and we have named these methods, the simple method and the complex method. The methods for deriving the repeating period were originally developed by Zafar Rafii and implemented by Ethan Manilow and Prem Seetharaman in Bryan Pardo’s lab at Northwestern University. The simple method derives the repeating period by computing the maximum of the beat spectrum and summing this with a minimum value. The complex method derives the period by computing the auto cosine similarity between the beat spectrum and itself, and deriving the result to compute the period. We evaluated the two methods by constructing our dataset and using the known period from this data to compare against the performance of both methods. Given the experiment we ran, more analysis is necessary to determine which method yields more accurate results.
+				</p>			
 			</section>
 			<section id ="dataset">
 				<h2>Data Set </h2>
 				<p>
-					We are in the process of gathering LooperMan and FreeSound sound files to build our training dataset. All files will be converted to 16 bit, mono, 44.1kHz to make sure our construction from the foreground and background is consistent.
+					In order to properly evaluate the performance of these period derivation algorithms we will need a dataset where we know the actual repeating period. Knowing the real period, we can compare this to compute the repeating period using both the simple and complex method. We will generate audio files where we can have control over the repeating period. To do this, we can take a segment of an original source file and repeat it a number of times. Thus, for each sound file, we construct many repeating files by varying the base segment length. 
 				</p>
 				<p>
-					We plan on getting 25 foreground and 25 background sound files. Mixing and matching these files will give us a dataset of 625 total files to test.The sound files are encoded in .wav format for consistency.
+					We collected a series of source files to use for our experiment. Each source file was created in such a way that there is no repetition within the file. Using these source files, we generated seed signals by dividing the source files by the set of consecutive integers ranging from one to ten. We stitched these seed signals together to create our repeating sound files, making sure to repeat the seed signal at least three times. 
+				</p>
+				<p>
+					We generated a total of 2128 wave files from a list of 28 source files for comparison in our experiment. For each seed segment, a file of length 10, 20, 30 and 40 seconds was created.
+
 				</p>
 			</section>
 			<section id='methodology'>
 				<h2>Methodology</h2>
 				<p>
-					Our web application will accept a .wav file as input. The file will upload to our server, and our application will run REPET twice. We will run REPET using a set of default parameters on the file and run REPET using parameters most similar to the nearest neighbor in our data set.
+					The program we wrote to compare the simple method and the complex method, for each source file, constructed a seed signal, stored its length in samples, and computed both the simple and complex method’s repeating period. The program logged these values into a database, storing the simple period, complex period, actual period, file name, sample rate, and length of the file for later analysis. We ran the tests on files with varying lengths and numbers of repetitions ranging from 10 seconds to 40 seconds long.
 				</p>
-
-				<p>
-					There are three stages to our system. First, we need to gather a set of foreground and background audio files and construct our data set. Next, we need to train our machine learning classifier. Finally, we want to query our system with audio files, using the classifier we made in the previous stage, to compute the best set of REPET parameters for an audio file.
-				</p>
-
-				<p>
-					First, we will download a large number audio files. We will download two types of files, repeating background files and nonrepeating foreground files.We will construct our data set by randomly combining one file from the list of background files and one from the list of foreground files.
-				</p>
-
-				<p>
-					Next, we will run REPET with a few different periods, thresholds, and window sizes and compare the output foreground and background audio files to the original foreground and background files using the signal to distortion ratio. For each file, we will choose the top parameter configuration that yields the highest signal to distortion ratio. For each file, we will also compute characteristics of the audio derived from the beat spectrum like number of peaks, max peaks, bpm, etc. We will then aggregate these results into a database which we can use for querying.
-				</p>
-
-				<p>
-					Finally, our classifier will accept a query sound file. We will compute characteristics about the file and use weighted euclidian distance or cosine similarity to find the nearest neighbor. Will will then present both users with the foreground and background produced by the REPET parameters of the nearest neighbor and the default REPET values.
-				</p>
-				
 			</section>
-			<article>
-			</div>
-		</div>
+			<section id='results'>
+				<h2>Results and Analysis</h2>
+				<p>
+					We ran the simple and complex methods on 532 repeating files, varying the lengths of the repeating files from 10 to 40 seconds in increments of 10 seconds. Running the simple method and the complex method on all of these variants resulted in a total of 2128 different files, with about 532 unique seed segments.
+				</p>
+				<p>
+					Analyzing the data proved to be a difficult task as both the complex and simple methods never found a period that matched the actual result. We chose to first naively compute the percentage error between the complex period and the actual period. We similarly computed the percentage error between the simple period and the actual period. In doing so, we found that the simple method had a lower standard and mean percentage error, with a mean percent error of -109.98% and a standard deviation of 317.006, while the complex method had a percent error of -252.55% and a standard deviation of 551.713. 
+				</p>
+				<p>
+					Computing the mean and standard deviation for the percentage error was useful, but we also graphed the distribution in histograms. Figure 1 is a histogram of the percentage error for each of the 2128 repeating files using the simple method to find the period. There are quite a few outliers with percentage error as low as 3000% error. Figure 2 is similarly a histogram of the percentage error for each of the 2128 repeating files using the complex method to find the period. There are also quite a few outliers with percentage errors as high as 4000%. Visualizing the data in this way prompted us to remove outliers to get a better estimate of the standard deviation and mean for these distributions, removing outliers above 500% error. We found that removing outliers above 500% error still favored the simple method with a mean of -52.797 being the mean percentage error with a standard deviation of 113.338. The complex method had a mean of -61.283% error with a standard deviation of 146.566. The distributions for the simple method is shown Figure 5 and for the complex method in Figure 6.
+				</p>
+				<div class="row">
+					<div class="col-sm-12 col-md-4 col-lg-4">
+						<img class="fill" src="/public/images/simple.png"></img>
+						<p>Figure 1: Percentage error distribution for the simple method across all 2128 repeating files.</p>
+					</div>
+					<div class="col-sm-12 col-md-4 col-lg-4">
+						<img class="fill" src="/public/images/complex.png"></img>
+						<p>Figure 2: Percentage error distribution for the complex method over all 2128 repeating files.</p>
+					</div>
+					<div class="col-sm-12 col-md-4 col-lg-4">
+						<img class="fill" src="/public/images/boxplot.png"></img>
+						<p>Figure 3: A side by side boxplot of the simple method distribution compared to the complex method distribution. The label 1 corresponds to the simple method and the label 2 corresponds to the complex method.</p>
+					</div>
+				</div>
+				<div class="row">
+					<div class="col-sm-12 col-md-4 col-lg-4">
+						<img class="fill" src="/public/images/simple-outliers.png"></img>
+						<p>Figure 4: Histogram of the percentage error across all 2128 files using the simple method with outliers removed.</p>
+					</div>
+					<div class="col-sm-12 col-md-4 col-lg-4">
+						<img class="fill" src="/public/images/complex-outliers.png"></img>
+						<p>Figure 5: Histogram of the percentage error across all 2128 files using the complex method with outliers removed.</p>
+					</div>
+					<div class="col-sm-12 col-md-4 col-lg-4">
+						<img class="fill" src="/public/images/boxplot-outliers.png"></img>
+						<p>Figure 6: A side by side boxplot of the simple method distribution compared to the complex method distribution with outliers removed. The label 1 corresponds to the simple method and the label 2 corresponds to the complex method.</p>
+					</div>
+				</div>
+				<div class="row">
+					<div class="col-sm-12 col-md-6 col-lg-6">
+						<p>
+							While the naive approach to analyzing this data shows that the simple method is better at finding the actual period, a percentage error that is an integer multiple of 100% error, plus or minus a few percent, may also be a period in the file. While a period that is an integer multiple of the actual period may not be the shortest period, it is a usable value. With this understanding of multiple integer multiples, we compared each file’s percentage error to integer multiples of 100% error within a threshold. We varied the threshold from 0.5% to 10%, with the understanding that anything within 2.5% error is unlikely to be a good representation of the period. Figure 7 is a graph of the threshold on the x axis and the number of files with a percentage error within this threshold on the y axis. From this graph the complex method found more periods that were approximately integer multiples of the actual period.
+						</p>
+						<p>
+							While this less naive approach to analyzing the data shows the complex method is slightly better than the simple method for finding a period within a few percent of integer multiples of the actual period, it is difficult to conclude if it is in fact better.
+						</p>
+					</div>
+					<div class="col-sm-12 col-md-6 col-lg-6">
+						<img class="fill" src="/public/images/boxplot-outliers.png"></img>
+						<p>Figure 7: Classifying the found periods from the simple method and the complex method to the nearest integer multiple within a varied threshold from 0 to 10 percent.</p>
+					</div>
+				</div>
+			</section>
+			<section id='conclusion'>
+				<h2>Conclusion</h2>
+				<p>
+					We see quite a few opportunities to continue exploring and analyzing the simple and complex methods for finding the period from a beat spectrum as well as comparison and analysis against other methods for finding the period from an audio source. More detailed analysis or data collection may be necessary for truly evaluating and comparing the simple and complex methods. Additionally, we can compare the results of these methods against other methods which use auto similarity matrices to find the period for an audio file. 
+				</p>
+				<p>
+					While we found the simple method excelled in naively analyzing the data, we believe more analysis is necessary to determine which method is best. There is the possibility that it make come down to a case by case basis by which one method may perform better than another. 
+				</p>
+			</section>
+		</article>
 	</div>
 </body>
 </html>

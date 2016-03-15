@@ -3,4 +3,5 @@ create table results (
    actual_period real,
    simple_period real,
    complex_period real,
-   sample_rate int);
+   sample_rate int,
+   length real);

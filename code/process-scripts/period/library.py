@@ -132,11 +132,11 @@ def generate_repeating_files_and_compare(input_path, output_path, length):
                     
 
 def compare_and_create_files(seed, file_name, length, output_path):
-    period_actual = len(seed.audio_data[0])
+    period_actual = float(len(seed.audio_data[0])) / float(seed.sample_rate)
     seed = create_looped_file(seed, length, file_name, output_path)
     period_simple, period_complex = compare_simple_complex_actual(seed)
 
-    insert_result(period_actual, period_simple, period_complex, seed.sample_rate)
+    insert_result(period_actual, period_simple, period_complex, seed.sample_rate, length)
 
 def create_looped_file(audio_signal, max_file_length, file_name, output_path):
     max_samples = int(max_file_length * audio_signal.sample_rate)
@@ -163,15 +163,137 @@ def compare_simple_complex_actual(audio_signal):
     period_simple_seconds = repet.stft_params.hop_length * period_simple / audio_signal.sample_rate
     period_complex_seconds = repet.stft_params.hop_length * period_complex / audio_signal.sample_rate
 
-    return repet.stft_params.hop_length * period_simple, repet.stft_params.hop_length * period_complex
+    return period_simple_seconds, period_complex_seconds
 
     # print 'actual = ', period_actual, 'samples', float(period_actual) / audio_signal.sample_rate, 'seconds'
     # print 'simple = ', period_simple,'hops,', period_simple * repet.stft_params.hop_length, 'samples',  period_simple_seconds, 'seconds'
     # print 'complex = ', period_complex,'hops,', period_complex * repet.stft_params.hop_length, 'samples', period_complex_seconds, 'seconds'
 
-def insert_result(period_actual, period_simple, period_complex, sample_rate):
+def insert_result(period_actual, period_simple, period_complex, sample_rate, length):
     conn = sqlite3.connect('results.db')
     cursor = conn.cursor()
-    cursor.execute('insert into results (actual_period, simple_period, complex_period, sample_rate) values (?, ?, ?, ?)', (period_actual, period_simple, period_complex, sample_rate))
+    cursor.execute('insert into results (actual_period, simple_period, complex_period, sample_rate, length) values (?, ?, ?, ?, ?)', (period_actual, period_simple, period_complex, sample_rate, length))
     conn.commit()
     conn.close()
+
+def percent_error(experimental, actual):
+    return (actual - experimental) / actual * 100
+    # return 1 - np.abs(experimental / actual - np.round(experimental / actual))
+
+def analyze_results():
+    simple = []
+    complex = []
+    actual = []
+
+    conn = sqlite3.connect('results.db')
+    cursor = conn.cursor()
+    cursor.execute('select actual_period, simple_period, complex_period, sample_rate from results')
+    
+    for row in cursor:
+        # simple_period_seconds = row[1] / row[3]
+        # actual_period_seconds = row[0] / row[3]
+        # complex_period_seconds = row[2] / row[3]
+
+        simple_error = percent_error(row[1], row[0])
+        # if simple_error < 200:
+        if np.abs(simple_error) < 500:
+            simple.append(simple_error)
+        complex_error = percent_error(row[2], row[0]) 
+        # if complex_error < 200:
+        if np.abs(complex_error) < 500:
+            complex.append(complex_error)   
+
+        actual.append(0)   
+
+    conn.close()
+
+    complex_good = []
+    complex_bad = []
+    simple_good = []
+    simple_bad = []
+
+    for i in range(5, 101, 5):
+        threshold = float(i) / 10
+        good, bad = classify_percent_error(simple, threshold)
+        simple_good.append(good)
+        simple_bad.append(bad)
+
+        good, bad = classify_percent_error(complex, threshold)
+        complex_good.append(good)
+        complex_bad.append(bad)
+
+    print simple_good
+    print complex_good
+
+    t = [float(x) / 10 for x in range(5, 101, 5)]
+    plt.title('Integer Multiple Percent Error')
+    plt.xlabel('Threshold')
+    plt.ylabel('Number of Files within Threshold')
+    plt.plot(t, simple_good, 'r.', t, complex_good, 'b.')
+    plt.show()
+
+    # plot_data(actual, simple, complex)
+    plot_hist(actual, 'Actual', 1000)
+    plot_hist(simple, 'Simple', 1000)
+    plot_hist(complex, 'Complex', 1000)
+    plot_box_plot(simple, complex)
+
+    print 'Simple'
+    print np.mean(simple)
+    print np.median(simple)
+    print np.std(simple)
+
+    print 'Complex'
+    print np.mean(complex)
+    print np.median(complex)
+    print np.std(complex)
+
+def classify_percent_error(data, threshold):
+    good = []
+    bad = []
+    max_value = int(np.ceil(np.max(data)))
+
+    for x in data:
+        if classify(x, max_value, threshold):
+            good.append(x)
+        else:
+            bad.append(x)
+
+    return len(good), len(bad)
+
+def classify(value, max_value, threshold):
+    '''
+    returns true if good and returns bad if not
+    '''
+    for i in range(0, max_value):
+        step = i * 100
+
+        if np.abs(value - step) <= threshold:
+            return True
+
+    return False
+
+def plot_data(actual, simple, complex):
+    plt.figure()
+    t = np.arange(0, len(actual))
+    plt.title('Files and Percent Error')
+    plt.xlabel('File')
+    plt.ylabel('Percent Error')
+    plt.plot(t, actual, 'r.', t, simple, 'b.', t, complex, 'y.')
+    plt.show()
+
+def plot_box_plot(simple, complex):
+    plt.figure()
+    plt.ylabel('Percent Error')
+    plt.boxplot([simple, complex], ['simple', 'complex'])
+    plt.show()
+
+def plot_hist(data, title, bins):
+    plt.figure()
+    axes = plt.gca()
+    # axes.set_xlim([-100,100])
+    plt.hist(data, bins=bins)
+    plt.title(title)
+    plt.xlabel('Percent Error')
+    plt.ylabel('Number of Files')
+    plt.show()
